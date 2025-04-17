@@ -50,11 +50,17 @@ export default function LoginPage() {
 
         console.log("Login successful, redirecting to:", redirectTo)
 
-        // Add a small delay before redirecting to ensure toast is shown
+        // Ensure we have the full URL for the redirect
+        const baseUrl = window.location.origin
+        const redirectUrl = redirectTo.startsWith("/") ? `${baseUrl}${redirectTo}` : `${baseUrl}/${redirectTo}`
+
+        console.log("Full redirect URL:", redirectUrl)
+
+        // Add a small delay to ensure toast is shown and session is stored
         setTimeout(() => {
           // Force a hard navigation to the admin page
-          window.location.href = redirectTo
-        }, 500)
+          window.location.href = redirectUrl
+        }, 1000)
       }
     } catch (error: any) {
       console.error("Login error:", error)
