@@ -10,9 +10,7 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
-import { toast } from "@/components/ui/use-toast"
 import { Download } from "lucide-react"
-import QRCode from "qrcode"
 import type { Link } from "@/lib/types"
 
 interface QrCodeDialogProps {
@@ -27,42 +25,24 @@ export function QrCodeDialog({ link, open, onOpenChange }: QrCodeDialogProps) {
   useEffect(() => {
     if (link && open) {
       const shortUrl = `${window.location.origin}/${link.short_code}`
-      generateQRCode(shortUrl)
+      // Use the Google Charts API to generate QR code
+      const googleChartsUrl = `https://chart.googleapis.com/chart?cht=qr&chs=300x300&chl=${encodeURIComponent(shortUrl)}&choe=UTF-8`
+      setQrCodeUrl(googleChartsUrl)
     } else {
       setQrCodeUrl(null)
     }
   }, [link, open])
 
-  const generateQRCode = async (url: string) => {
-    try {
-      const dataUrl = await QRCode.toDataURL(url, {
-        width: 300,
-        margin: 2,
-        color: {
-          dark: "#000000",
-          light: "#ffffff",
-        },
-      })
-      setQrCodeUrl(dataUrl)
-    } catch (error) {
-      console.error("Error generating QR code:", error)
-      toast({
-        title: "Error",
-        description: "Failed to generate QR code",
-        variant: "destructive",
-      })
-    }
-  }
-
   const downloadQRCode = () => {
-    if (!qrCodeUrl) return
+    if (!qrCodeUrl || !link) return
 
-    const link = document.createElement("a")
-    link.href = qrCodeUrl
-    link.download = `qrcode-${link?.short_code || "link"}.png`
-    document.body.appendChild(link)
-    link.click()
-    document.body.removeChild(link)
+    // Create a temporary link element to download the image
+    const a = document.createElement("a")
+    a.href = qrCodeUrl
+    a.download = `qrcode-${link.short_code || "link"}.png`
+    document.body.appendChild(a)
+    a.click()
+    document.body.removeChild(a)
   }
 
   return (
