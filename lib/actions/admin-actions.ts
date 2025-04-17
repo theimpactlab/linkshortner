@@ -2,6 +2,7 @@
 
 import { createServerSupabaseClient } from "@/lib/supabase/server"
 import { revalidatePath } from "next/cache"
+import type { User } from "@/lib/types"
 
 // Get user statistics
 export async function getUserStats() {
@@ -59,7 +60,7 @@ export async function getUserStats() {
 }
 
 // Get all users (admin only)
-export async function getUsers() {
+export async function getUsers(): Promise<User[]> {
   const supabase = createServerSupabaseClient()
 
   try {
@@ -97,15 +98,18 @@ export async function getUsers() {
     const combinedUsers = users.users.map((user) => {
       const additionalData = usersData?.find((u) => u.id === user.id) || {}
       return {
-        ...user,
-        ...additionalData,
+        id: user.id,
+        email: user.email,
+        role: additionalData.role || "user",
+        created_at: user.created_at,
+        last_sign_in_at: user.last_sign_in_at,
       }
     })
 
     return combinedUsers
   } catch (error) {
     console.error("Error in getUsers:", error)
-    throw new Error("Failed to fetch users")
+    return []
   }
 }
 

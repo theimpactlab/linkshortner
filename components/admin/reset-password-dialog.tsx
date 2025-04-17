@@ -14,11 +14,7 @@ import {
 } from "@/components/ui/dialog"
 import { toast } from "@/components/ui/use-toast"
 import { resetUserPassword } from "@/lib/actions/admin-actions"
-
-interface User {
-  id: string
-  email: string
-}
+import type { User } from "@/lib/types"
 
 interface ResetPasswordDialogProps {
   user: User | null

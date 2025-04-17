@@ -1,173 +1,116 @@
 "use client"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { Button } from "@/components/ui/button"
-import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
 import {
-  DropdownMenu,
-  DropdownMenuContent,
-  DropdownMenuItem,
-  DropdownMenuLabel,
-  DropdownMenuSeparator,
-  DropdownMenuTrigger,
-} from "@/components/ui/dropdown-menu"
-import { Badge } from "@/components/ui/badge"
+  Dialog,
+  DialogContent,
+  DialogDescription,
+  DialogFooter,
+  DialogHeader,
+  DialogTitle,
+} from "@/components/ui/dialog"
+import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select"
 import { toast } from "@/components/ui/use-toast"
-import { formatDistanceToNow } from "date-fns"
-import { MoreHorizontal, Key, Trash2, UserCog } from "lucide-react"
-import { deleteUser } from "@/lib/actions/admin-actions"
-import { EditUserDialog } from "@/components/admin/edit-user-dialog"
-import { ResetPasswordDialog } from "@/components/admin/reset-password-dialog"
-import { DeleteConfirmDialog } from "@/components/admin/delete-confirm-dialog"
+import { updateUser } from "@/lib/actions/admin-actions"
+import type { User } from "@/lib/types"
 
-interface User {
-  id: string
-  email: string
-  created_at: string
-  last_sign_in_at: string | null
-  role: string
+interface EditUserDialogProps {
+  user: User | null
+  open: boolean
+  onOpenChange: (open: boolean) => void
+  onSuccess: () => void
 }
 
-interface UsersTableProps {
-  users: User[]
-  isLoading: boolean
-  onRefresh: () => void
-}
+export function EditUserDialog({ user, open, onOpenChange, onSuccess }: EditUserDialogProps) {
+  const [formData, setFormData] = useState({
+    email: "",
+    role: "user",
+  })
+  const [isLoading, setIsLoading] = useState(false)
 
-export function UsersTable({ users, isLoading, onRefresh }: UsersTableProps) {
-  const [editingUser, setEditingUser] = useState<User | null>(null)
-  const [resetPasswordUser, setResetPasswordUser] = useState<User | null>(null)
-  const [deletingUser, setDeletingUser] = useState<User | null>(null)
-  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
-  const [isResetPasswordDialogOpen, setIsResetPasswordDialogOpen] = useState(false)
-  const [isDeleteDialogOpen, setIsDeleteDialogOpen] = useState(false)
+  useEffect(() => {
+    if (user) {
+      setFormData({
+        email: user.email || "",
+        role: user.role || "user",
+      })
+    }
+  }, [user])
 
-  const handleDelete = async (user: User) => {
+  const handleSubmit = async () => {
+    if (!user) return
+
+    setIsLoading(true)
     try {
-      await deleteUser(user.id)
+      const result = await updateUser(user.id, formData)
+
+      if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive",
+        })
+        return
+      }
+
       toast({
         title: "Success",
-        description: "User deleted successfully",
+        description: "User updated successfully",
       })
-      onRefresh()
+      onOpenChange(false)
+      onSuccess()
     } catch (error) {
       toast({
         title: "Error",
-        description: "Failed to delete user",
+        description: "Failed to update user",
         variant: "destructive",
       })
+    } finally {
+      setIsLoading(false)
     }
   }
 
-  if (isLoading) {
-    return <div className="text-center py-8">Loading users...</div>
-  }
-
-  if (users.length === 0) {
-    return <div className="text-center py-8">No users found.</div>
-  }
-
   return (
-    <>
-      <div className="rounded-md border">
-        <Table>
-          <TableHeader>
-            <TableRow>
-              <TableHead>Email</TableHead>
-              <TableHead>Role</TableHead>
-              <TableHead>Created</TableHead>
-              <TableHead>Last Sign In</TableHead>
-              <TableHead className="text-right">Actions</TableHead>
-            </TableRow>
-          </TableHeader>
-          <TableBody>
-            {users.map((user) => (
-              <TableRow key={user.id}>
-                <TableCell>{user.email}</TableCell>
-                <TableCell>
-                  <Badge variant={user.role === "admin" ? "default" : "secondary"}>{user.role || "user"}</Badge>
-                </TableCell>
-                <TableCell>{formatDistanceToNow(new Date(user.created_at), { addSuffix: true })}</TableCell>
-                <TableCell>
-                  {user.last_sign_in_at
-                    ? formatDistanceToNow(new Date(user.last_sign_in_at), { addSuffix: true })
-                    : "Never"}
-                </TableCell>
-                <TableCell className="text-right">
-                  <DropdownMenu>
-                    <DropdownMenuTrigger asChild>
-                      <Button variant="ghost" size="icon">
-                        <MoreHorizontal className="h-4 w-4" />
-                        <span className="sr-only">Open menu</span>
-                      </Button>
-                    </DropdownMenuTrigger>
-                    <DropdownMenuContent align="end">
-                      <DropdownMenuLabel>Actions</DropdownMenuLabel>
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setEditingUser(user)
-                          setIsEditDialogOpen(true)
-                        }}
-                      >
-                        <UserCog className="mr-2 h-4 w-4" />
-                        Edit User
-                      </DropdownMenuItem>
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setResetPasswordUser(user)
-                          setIsResetPasswordDialogOpen(true)
-                        }}
-                      >
-                        <Key className="mr-2 h-4 w-4" />
-                        Reset Password
-                      </DropdownMenuItem>
-                      <DropdownMenuSeparator />
-                      <DropdownMenuItem
-                        onClick={() => {
-                          setDeletingUser(user)
-                          setIsDeleteDialogOpen(true)
-                        }}
-                        className="text-destructive focus:text-destructive"
-                      >
-                        <Trash2 className="mr-2 h-4 w-4" />
-                        Delete User
-                      </DropdownMenuItem>
-                    </DropdownMenuContent>
-                  </DropdownMenu>
-                </TableCell>
-              </TableRow>
-            ))}
-          </TableBody>
-        </Table>
-      </div>
-
-      {/* Edit Dialog */}
-      <EditUserDialog
-        user={editingUser}
-        open={isEditDialogOpen}
-        onOpenChange={setIsEditDialogOpen}
-        onSuccess={onRefresh}
-      />
-
-      {/* Reset Password Dialog */}
-      <ResetPasswordDialog
-        user={resetPasswordUser}
-        open={isResetPasswordDialogOpen}
-        onOpenChange={setIsResetPasswordDialogOpen}
-      />
-
-      {/* Delete Confirmation Dialog */}
-      <DeleteConfirmDialog
-        open={isDeleteDialogOpen}
-        onOpenChange={setIsDeleteDialogOpen}
-        onConfirm={() => {
-          if (deletingUser) {
-            handleDelete(deletingUser)
-          }
-        }}
-        title="Delete User"
-        description="Are you sure you want to delete this user? All their links will also be deleted. This action cannot be undone."
-      />
-    </>
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="sm:max-w-[500px]">
+        <DialogHeader>
+          <DialogTitle>Edit User</DialogTitle>
+          <DialogDescription>Update user details and permissions</DialogDescription>
+        </DialogHeader>
+        <div className="grid gap-4 py-4">
+          <div className="grid gap-2">
+            <Label htmlFor="email">Email</Label>
+            <Input
+              id="email"
+              value={formData.email}
+              onChange={(e) => setFormData({ ...formData, email: e.target.value })}
+            />
+          </div>
+          <div className="grid gap-2">
+            <Label htmlFor="role">Role</Label>
+            <Select value={formData.role} onValueChange={(value) => setFormData({ ...formData, role: value })}>
+              <SelectTrigger>
+                <SelectValue placeholder="Select role" />
+              </SelectTrigger>
+              <SelectContent>
+                <SelectItem value="user">User</SelectItem>
+                <SelectItem value="admin">Admin</SelectItem>
+              </SelectContent>
+            </Select>
+          </div>
+        </div>
+        <DialogFooter>
+          <Button variant="outline" onClick={() => onOpenChange(false)}>
+            Cancel
+          </Button>
+          <Button onClick={handleSubmit} disabled={isLoading}>
+            {isLoading ? "Saving..." : "Save Changes"}
+          </Button>
+        </DialogFooter>
+      </DialogContent>
+    </Dialog>
   )
 }

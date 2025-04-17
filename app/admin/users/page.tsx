@@ -9,9 +9,10 @@ import { UsersTable } from "@/components/admin/users-table"
 import { PlusCircle } from "lucide-react"
 import { CreateUserDialog } from "@/components/admin/create-user-dialog"
 import { getUsers } from "@/lib/actions/admin-actions"
+import type { User } from "@/lib/types"
 
 export default function UsersPage() {
-  const [users, setUsers] = useState([])
+  const [users, setUsers] = useState<User[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
   const [isCreateDialogOpen, setIsCreateDialogOpen] = useState(false)
@@ -20,7 +21,7 @@ export default function UsersPage() {
     try {
       setIsLoading(true)
       const data = await getUsers()
-      setUsers(data)
+      setUsers(data || [])
     } catch (error) {
       toast({
         title: "Error",
@@ -36,7 +37,9 @@ export default function UsersPage() {
     fetchUsers()
   }, [])
 
-  const filteredUsers = users.filter((user) => user.email.includes(searchTerm))
+  const filteredUsers = users.filter(
+    (user) => user.email && user.email.toLowerCase().includes(searchTerm.toLowerCase()),
+  )
 
   return (
     <div className="space-y-6">
