@@ -5,6 +5,7 @@ export interface Link {
   user_id: string
   clicks: number
   active: boolean
+  expires_at?: string | null
   created_at: string
   updated_at: string
 }
@@ -21,4 +22,5 @@ export interface Click {
 export interface User {
   id: string
   email: string
+  role?: string
 }

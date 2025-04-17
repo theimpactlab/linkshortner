@@ -5,7 +5,7 @@ import { nanoid } from "nanoid"
 import type { Link } from "@/lib/types"
 import { revalidatePath } from "next/cache"
 
-export async function createShortLink(originalUrl: string, customCode?: string) {
+export async function createShortLink(originalUrl: string, customCode?: string, expiresAt?: string) {
   const supabase = createServerSupabaseClient()
 
   try {
@@ -41,6 +41,7 @@ export async function createShortLink(originalUrl: string, customCode?: string) 
         original_url: originalUrl,
         short_code: shortCode,
         user_id: userId,
+        expires_at: expiresAt || null,
       })
       .select()
       .single()
@@ -51,6 +52,7 @@ export async function createShortLink(originalUrl: string, customCode?: string) 
     }
 
     revalidatePath("/admin")
+    revalidatePath("/admin/links")
     return { shortCode }
   } catch (error) {
     console.error("Error in createShortLink:", error)
@@ -92,7 +94,7 @@ export async function getUserLinks() {
 
 export async function updateLink(
   id: string,
-  updates: { original_url?: string; short_code?: string; active?: boolean },
+  updates: { original_url?: string; short_code?: string; active?: boolean; expires_at?: string | null },
 ) {
   const supabase = createServerSupabaseClient()
 
@@ -140,6 +142,7 @@ export async function updateLink(
     }
 
     revalidatePath("/admin")
+    revalidatePath("/admin/links")
     return { success: true }
   } catch (error: any) {
     console.error("Error in updateLink:", error)
@@ -169,6 +172,7 @@ export async function deleteLink(id: string) {
     }
 
     revalidatePath("/admin")
+    revalidatePath("/admin/links")
     return { success: true }
   } catch (error: any) {
     console.error("Error in deleteLink:", error)

@@ -7,14 +7,19 @@ export async function GET(request: NextRequest, { params }: { params: { shortCod
 
   try {
     // Find the link
-    const { data: link, error } = await supabase
-      .from("links")
-      .select("*")
-      .eq("short_code", shortCode)
-      .eq("active", true)
-      .single()
+    const { data: link, error } = await supabase.from("links").select("*").eq("short_code", shortCode).single()
 
     if (error || !link) {
+      return NextResponse.redirect(new URL("/not-found", request.url))
+    }
+
+    // Check if link is active
+    if (!link.active) {
+      return NextResponse.redirect(new URL("/not-found", request.url))
+    }
+
+    // Check if link has expired
+    if (link.expires_at && new Date(link.expires_at) < new Date()) {
       return NextResponse.redirect(new URL("/not-found", request.url))
     }
 
