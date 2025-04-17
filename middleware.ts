@@ -17,9 +17,14 @@ export async function middleware(req: NextRequest) {
     return NextResponse.redirect(redirectUrl)
   }
 
+  // Prevent redirect loops - if we're already on the login page, don't redirect again
+  if (!session && req.nextUrl.pathname === "/login") {
+    return res
+  }
+
   return res
 }
 
 export const config = {
-  matcher: ["/admin/:path*"],
+  matcher: ["/admin/:path*", "/login"],
 }

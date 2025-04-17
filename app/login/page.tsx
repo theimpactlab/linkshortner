@@ -2,7 +2,7 @@
 
 import type React from "react"
 
-import { useState } from "react"
+import { useState, useEffect } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
@@ -17,10 +17,17 @@ export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const { signIn } = useAuth()
+  const { signIn, user } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get("redirectTo") || "/admin"
+
+  // If user is already logged in, redirect to the admin page
+  useEffect(() => {
+    if (user) {
+      router.push(redirectTo)
+    }
+  }, [user, router, redirectTo])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
@@ -35,6 +42,7 @@ export default function LoginPage() {
           description: error.message,
           variant: "destructive",
         })
+        setIsLoading(false)
         return
       }
 
@@ -43,14 +51,13 @@ export default function LoginPage() {
         description: "You have been logged in",
       })
 
-      router.push(redirectTo)
-    } catch (error) {
+      // The redirect will happen automatically via the useEffect above
+    } catch (error: any) {
       toast({
         title: "Error",
-        description: "Failed to sign in",
+        description: error?.message || "Failed to sign in",
         variant: "destructive",
       })
-    } finally {
       setIsLoading(false)
     }
   }
