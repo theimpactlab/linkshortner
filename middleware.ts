@@ -32,7 +32,9 @@ export async function middleware(req: NextRequest) {
     // If already authenticated and trying to access login page, redirect to admin
     if (session && path === "/login") {
       console.log("Already authenticated, redirecting to admin")
-      return NextResponse.redirect(new URL("/admin", req.url))
+      // Check if there's a redirectTo parameter
+      const redirectTo = req.nextUrl.searchParams.get("redirectTo") || "/admin"
+      return NextResponse.redirect(new URL(redirectTo, req.url))
     }
 
     // For all other cases, continue with the request
