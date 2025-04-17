@@ -3,26 +3,40 @@ import { NextResponse } from "next/server"
 import type { NextRequest } from "next/server"
 
 export async function middleware(req: NextRequest) {
+  // Create a response object
   const res = NextResponse.next()
+
+  // Create the Supabase client
   const supabase = createMiddlewareClient({ req, res })
 
-  const {
-    data: { session },
-  } = await supabase.auth.getSession()
+  try {
+    // Get the user's session
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
 
-  // If the user is not signed in and the route is protected, redirect to login
-  if (!session && req.nextUrl.pathname.startsWith("/admin")) {
-    const redirectUrl = new URL("/login", req.url)
-    redirectUrl.searchParams.set("redirectTo", req.nextUrl.pathname)
-    return NextResponse.redirect(redirectUrl)
-  }
+    // Get the current URL path
+    const path = req.nextUrl.pathname
 
-  // Prevent redirect loops - if we're already on the login page, don't redirect again
-  if (!session && req.nextUrl.pathname === "/login") {
+    // If accessing admin routes without authentication, redirect to login
+    if (!session && path.startsWith("/admin")) {
+      const redirectUrl = new URL("/login", req.url)
+      redirectUrl.searchParams.set("redirectTo", path)
+      return NextResponse.redirect(redirectUrl)
+    }
+
+    // If already authenticated and trying to access login page, redirect to admin
+    if (session && path === "/login") {
+      return NextResponse.redirect(new URL("/admin", req.url))
+    }
+
+    // For all other cases, continue with the request
+    return res
+  } catch (error) {
+    console.error("Middleware error:", error)
+    // In case of error, allow the request to continue
     return res
   }
-
-  return res
 }
 
 export const config = {

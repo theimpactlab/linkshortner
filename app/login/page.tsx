@@ -2,39 +2,35 @@
 
 import type React from "react"
 
-import { useState, useEffect } from "react"
+import { useState } from "react"
 import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
-import { useAuth } from "@/lib/auth/auth-context"
 import { toast } from "@/components/ui/use-toast"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
+import { supabase } from "@/lib/supabase/client"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const { signIn, user } = useAuth()
   const router = useRouter()
   const searchParams = useSearchParams()
   const redirectTo = searchParams.get("redirectTo") || "/admin"
-
-  // If user is already logged in, redirect to the admin page
-  useEffect(() => {
-    if (user) {
-      router.push(redirectTo)
-    }
-  }, [user, router, redirectTo])
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
-      const { error } = await signIn(email, password)
+      // Direct Supabase authentication without going through the context
+      const { data, error } = await supabase.auth.signInWithPassword({
+        email,
+        password,
+      })
 
       if (error) {
         toast({
@@ -46,12 +42,15 @@ export default function LoginPage() {
         return
       }
 
-      toast({
-        title: "Success!",
-        description: "You have been logged in",
-      })
+      if (data.session) {
+        toast({
+          title: "Success!",
+          description: "You have been logged in",
+        })
 
-      // The redirect will happen automatically via the useEffect above
+        // Force a hard navigation to the admin page
+        window.location.href = redirectTo
+      }
     } catch (error: any) {
       toast({
         title: "Error",

@@ -5,7 +5,6 @@ import type React from "react"
 import { createContext, useContext, useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase/client"
 import type { User } from "@supabase/supabase-js"
-import { useRouter } from "next/navigation"
 
 type AuthContextType = {
   user: User | null
@@ -24,44 +23,49 @@ const AuthContext = createContext<AuthContextType>({
 export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const [user, setUser] = useState<User | null>(null)
   const [loading, setLoading] = useState(true)
-  const router = useRouter()
 
   useEffect(() => {
-    const getUser = async () => {
+    // Set up the auth state listener
+    const setupAuthListener = async () => {
       try {
+        // Get the initial session
         const {
           data: { session },
         } = await supabase.auth.getSession()
-
         setUser(session?.user || null)
-        setLoading(false)
 
-        const { data: authListener } = supabase.auth.onAuthStateChange((event, session) => {
+        // Set up the auth state change listener
+        const {
+          data: { subscription },
+        } = await supabase.auth.onAuthStateChange((event, session) => {
           setUser(session?.user || null)
-          setLoading(false)
 
-          // Refresh the page when auth state changes to ensure proper rendering
-          if (event === "SIGNED_IN" || event === "SIGNED_OUT") {
-            router.refresh()
+          // Handle auth state changes
+          if (event === "SIGNED_IN" && session) {
+            console.log("User signed in:", session.user)
+          } else if (event === "SIGNED_OUT") {
+            console.log("User signed out")
           }
         })
 
+        setLoading(false)
+
+        // Clean up the listener on unmount
         return () => {
-          authListener.subscription.unsubscribe()
+          subscription.unsubscribe()
         }
       } catch (error) {
-        console.error("Auth context error:", error)
+        console.error("Error setting up auth listener:", error)
         setLoading(false)
       }
     }
 
-    getUser()
-  }, [router])
+    setupAuthListener()
+  }, [])
 
   const signIn = async (email: string, password: string) => {
     try {
-      const response = await supabase.auth.signInWithPassword({ email, password })
-      return response
+      return await supabase.auth.signInWithPassword({ email, password })
     } catch (error) {
       console.error("Sign in error:", error)
       return { error }
@@ -71,7 +75,8 @@ export const AuthProvider = ({ children }: { children: React.ReactNode }) => {
   const signOut = async () => {
     try {
       const response = await supabase.auth.signOut()
-      router.push("/")
+      // Use window.location for a hard navigation after sign out
+      window.location.href = "/"
       return response
     } catch (error) {
       console.error("Sign out error:", error)
