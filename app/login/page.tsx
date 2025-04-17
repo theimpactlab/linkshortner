@@ -26,7 +26,7 @@ export default function LoginPage() {
     setIsLoading(true)
 
     try {
-      // Direct Supabase authentication without going through the context
+      // Direct Supabase authentication
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -48,10 +48,16 @@ export default function LoginPage() {
           description: "You have been logged in",
         })
 
-        // Force a hard navigation to the admin page
-        window.location.href = redirectTo
+        console.log("Login successful, redirecting to:", redirectTo)
+
+        // Add a small delay before redirecting to ensure toast is shown
+        setTimeout(() => {
+          // Force a hard navigation to the admin page
+          window.location.href = redirectTo
+        }, 500)
       }
     } catch (error: any) {
+      console.error("Login error:", error)
       toast({
         title: "Error",
         description: error?.message || "Failed to sign in",

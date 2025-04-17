@@ -18,8 +18,12 @@ export async function middleware(req: NextRequest) {
     // Get the current URL path
     const path = req.nextUrl.pathname
 
+    // Debug logging
+    console.log("Middleware path:", path, "Session exists:", !!session)
+
     // If accessing admin routes without authentication, redirect to login
     if (!session && path.startsWith("/admin")) {
+      console.log("Redirecting to login from:", path)
       const redirectUrl = new URL("/login", req.url)
       redirectUrl.searchParams.set("redirectTo", path)
       return NextResponse.redirect(redirectUrl)
@@ -27,6 +31,7 @@ export async function middleware(req: NextRequest) {
 
     // If already authenticated and trying to access login page, redirect to admin
     if (session && path === "/login") {
+      console.log("Already authenticated, redirecting to admin")
       return NextResponse.redirect(new URL("/admin", req.url))
     }
 
