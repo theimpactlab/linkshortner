@@ -1,5 +1,7 @@
 "use client"
 
+import { Button } from "@/components/ui/button"
+
 import { useEffect, useState } from "react"
 import { Input } from "@/components/ui/input"
 import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
@@ -11,28 +13,30 @@ import { getUserLinks, deleteLink } from "@/lib/actions/link-actions"
 import { LinkTable } from "@/components/link-table"
 import { Tabs, TabsContent, TabsList, TabsTrigger } from "@/components/ui/tabs"
 import { LinkShortenerForm } from "@/components/link-shortener-form"
+import { useRouter } from "next/navigation"
 
 export default function AdminDashboard() {
   const [links, setLinks] = useState<Link[]>([])
   const [isLoading, setIsLoading] = useState(true)
   const [searchTerm, setSearchTerm] = useState("")
+  const router = useRouter()
+
+  const fetchLinks = async () => {
+    try {
+      const data = await getUserLinks()
+      setLinks(data)
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to fetch links",
+        variant: "destructive",
+      })
+    } finally {
+      setIsLoading(false)
+    }
+  }
 
   useEffect(() => {
-    const fetchLinks = async () => {
-      try {
-        const data = await getUserLinks()
-        setLinks(data)
-      } catch (error) {
-        toast({
-          title: "Error",
-          description: "Failed to fetch links",
-          variant: "destructive",
-        })
-      } finally {
-        setIsLoading(false)
-      }
-    }
-
     fetchLinks()
   }, [])
 
@@ -51,6 +55,11 @@ export default function AdminDashboard() {
         variant: "destructive",
       })
     }
+  }
+
+  const refreshLinks = () => {
+    setIsLoading(true)
+    fetchLinks()
   }
 
   const filteredLinks = links.filter(
@@ -74,13 +83,16 @@ export default function AdminDashboard() {
               <CardHeader>
                 <CardTitle>My Links</CardTitle>
                 <CardDescription>Manage all your shortened links</CardDescription>
-                <div className="mt-4">
+                <div className="flex justify-between items-center mt-4">
                   <Input
                     placeholder="Search links..."
                     value={searchTerm}
                     onChange={(e) => setSearchTerm(e.target.value)}
                     className="max-w-sm"
                   />
+                  <Button variant="outline" onClick={refreshLinks}>
+                    Refresh
+                  </Button>
                 </div>
               </CardHeader>
               <CardContent>
@@ -90,7 +102,7 @@ export default function AdminDashboard() {
           </TabsContent>
 
           <TabsContent value="create">
-            <LinkShortenerForm />
+            <LinkShortenerForm onSuccess={refreshLinks} />
           </TabsContent>
         </Tabs>
       </main>

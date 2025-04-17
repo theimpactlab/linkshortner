@@ -90,6 +90,63 @@ export async function getUserLinks() {
   }
 }
 
+export async function updateLink(
+  id: string,
+  updates: { original_url?: string; short_code?: string; active?: boolean },
+) {
+  const supabase = createServerSupabaseClient()
+
+  try {
+    // Get current user
+    const {
+      data: { session },
+    } = await supabase.auth.getSession()
+
+    if (!session?.user) {
+      throw new Error("Unauthorized")
+    }
+
+    // Check if the link belongs to the user
+    const { data: link, error: fetchError } = await supabase.from("links").select("user_id").eq("id", id).single()
+
+    if (fetchError || !link) {
+      throw new Error("Link not found")
+    }
+
+    if (link.user_id !== session.user.id) {
+      throw new Error("Unauthorized")
+    }
+
+    // If updating short_code, check if it already exists
+    if (updates.short_code) {
+      const { data: existingLink } = await supabase
+        .from("links")
+        .select("id")
+        .eq("short_code", updates.short_code)
+        .neq("id", id)
+        .single()
+
+      if (existingLink) {
+        return { error: "This custom code is already in use" }
+      }
+    }
+
+    // Update the link
+    const { error } = await supabase.from("links").update(updates).eq("id", id).eq("user_id", session.user.id)
+
+    if (error) {
+      console.error("Error updating link:", error)
+      throw new Error("Failed to update link")
+    }
+
+    revalidatePath("/admin")
+    return { success: true }
+  } catch (error: any) {
+    console.error("Error in updateLink:", error)
+    return { error: error.message || "An unexpected error occurred" }
+  }
+}
+
 export async function deleteLink(id: string) {
   const supabase = createServerSupabaseClient()
 
@@ -112,8 +169,9 @@ export async function deleteLink(id: string) {
     }
 
     revalidatePath("/admin")
-  } catch (error) {
+    return { success: true }
+  } catch (error: any) {
     console.error("Error in deleteLink:", error)
-    throw new Error("An unexpected error occurred")
+    return { error: error.message || "An unexpected error occurred" }
   }
 }

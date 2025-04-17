@@ -3,7 +3,7 @@
 import { useState } from "react"
 import { Button } from "@/components/ui/button"
 import type { Link } from "@/lib/types"
-import { Copy, ExternalLink, Trash2 } from "lucide-react"
+import { Copy, ExternalLink, Trash2, Edit } from "lucide-react"
 import { toast } from "@/components/ui/use-toast"
 import { Table, TableBody, TableCell, TableHead, TableHeader, TableRow } from "@/components/ui/table"
 import {
@@ -14,7 +14,11 @@ import {
   DialogHeader,
   DialogTitle,
 } from "@/components/ui/dialog"
+import { Input } from "@/components/ui/input"
+import { Label } from "@/components/ui/label"
+import { Switch } from "@/components/ui/switch"
 import { formatDistanceToNow } from "date-fns"
+import { updateLink, deleteLink } from "@/lib/actions/link-actions"
 
 interface LinkTableProps {
   links: Link[]
@@ -24,21 +28,93 @@ interface LinkTableProps {
 
 export function LinkTable({ links, isLoading, onDelete }: LinkTableProps) {
   const [deleteId, setDeleteId] = useState<string | null>(null)
+  const [editingLink, setEditingLink] = useState<Link | null>(null)
   const [isDeleting, setIsDeleting] = useState(false)
+  const [isEditing, setIsEditing] = useState(false)
   const [isDialogOpen, setIsDialogOpen] = useState(false)
+  const [isEditDialogOpen, setIsEditDialogOpen] = useState(false)
+  const [editFormData, setEditFormData] = useState({
+    original_url: "",
+    short_code: "",
+    active: true,
+  })
 
   const handleDelete = async () => {
     if (!deleteId) return
 
     setIsDeleting(true)
     try {
-      await onDelete(deleteId)
+      const result = await deleteLink(deleteId)
+      if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive",
+        })
+      } else {
+        await onDelete(deleteId)
+        toast({
+          title: "Success",
+          description: "Link deleted successfully",
+        })
+      }
       setIsDialogOpen(false)
     } catch (error) {
-      // Error is handled in the parent component
+      toast({
+        title: "Error",
+        description: "Failed to delete link",
+        variant: "destructive",
+      })
     } finally {
       setIsDeleting(false)
       setDeleteId(null)
+    }
+  }
+
+  const handleEdit = (link: Link) => {
+    setEditingLink(link)
+    setEditFormData({
+      original_url: link.original_url,
+      short_code: link.short_code,
+      active: link.active,
+    })
+    setIsEditDialogOpen(true)
+  }
+
+  const handleSaveEdit = async () => {
+    if (!editingLink) return
+
+    setIsEditing(true)
+    try {
+      const result = await updateLink(editingLink.id, editFormData)
+
+      if (result.error) {
+        toast({
+          title: "Error",
+          description: result.error,
+          variant: "destructive",
+        })
+      } else {
+        // Update the link in the local state
+        const updatedLinks = links.map((link) => (link.id === editingLink.id ? { ...link, ...editFormData } : link))
+
+        toast({
+          title: "Success",
+          description: "Link updated successfully",
+        })
+
+        // Close the dialog and refresh the page to show updated data
+        setIsEditDialogOpen(false)
+        window.location.reload()
+      }
+    } catch (error) {
+      toast({
+        title: "Error",
+        description: "Failed to update link",
+        variant: "destructive",
+      })
+    } finally {
+      setIsEditing(false)
     }
   }
 
@@ -68,6 +144,7 @@ export function LinkTable({ links, isLoading, onDelete }: LinkTableProps) {
               <TableHead>Short Link</TableHead>
               <TableHead>Original URL</TableHead>
               <TableHead>Clicks</TableHead>
+              <TableHead>Status</TableHead>
               <TableHead>Created</TableHead>
               <TableHead>Actions</TableHead>
             </TableRow>
@@ -104,9 +181,17 @@ export function LinkTable({ links, isLoading, onDelete }: LinkTableProps) {
                     </div>
                   </TableCell>
                   <TableCell>{link.clicks}</TableCell>
+                  <TableCell>
+                    <span className={link.active ? "text-green-500" : "text-red-500"}>
+                      {link.active ? "Active" : "Inactive"}
+                    </span>
+                  </TableCell>
                   <TableCell>{formatDistanceToNow(new Date(link.created_at), { addSuffix: true })}</TableCell>
                   <TableCell>
                     <div className="flex items-center space-x-2">
+                      <Button variant="ghost" size="icon" onClick={() => handleEdit(link)}>
+                        <Edit className="h-4 w-4" />
+                      </Button>
                       <Button
                         variant="ghost"
                         size="icon"
@@ -126,6 +211,7 @@ export function LinkTable({ links, isLoading, onDelete }: LinkTableProps) {
         </Table>
       </div>
 
+      {/* Delete Dialog */}
       <Dialog open={isDialogOpen} onOpenChange={setIsDialogOpen}>
         <DialogContent>
           <DialogHeader>
@@ -140,6 +226,54 @@ export function LinkTable({ links, isLoading, onDelete }: LinkTableProps) {
             </Button>
             <Button variant="destructive" onClick={handleDelete} disabled={isDeleting}>
               {isDeleting ? "Deleting..." : "Delete"}
+            </Button>
+          </DialogFooter>
+        </DialogContent>
+      </Dialog>
+
+      {/* Edit Dialog */}
+      <Dialog open={isEditDialogOpen} onOpenChange={setIsEditDialogOpen}>
+        <DialogContent>
+          <DialogHeader>
+            <DialogTitle>Edit Link</DialogTitle>
+            <DialogDescription>Update your link details</DialogDescription>
+          </DialogHeader>
+
+          <div className="space-y-4 py-4">
+            <div className="space-y-2">
+              <Label htmlFor="original-url">Original URL</Label>
+              <Input
+                id="original-url"
+                value={editFormData.original_url}
+                onChange={(e) => setEditFormData({ ...editFormData, original_url: e.target.value })}
+              />
+            </div>
+
+            <div className="space-y-2">
+              <Label htmlFor="short-code">Short Code</Label>
+              <Input
+                id="short-code"
+                value={editFormData.short_code}
+                onChange={(e) => setEditFormData({ ...editFormData, short_code: e.target.value })}
+              />
+            </div>
+
+            <div className="flex items-center space-x-2">
+              <Switch
+                id="active"
+                checked={editFormData.active}
+                onCheckedChange={(checked) => setEditFormData({ ...editFormData, active: checked })}
+              />
+              <Label htmlFor="active">Active</Label>
+            </div>
+          </div>
+
+          <DialogFooter>
+            <Button variant="outline" onClick={() => setIsEditDialogOpen(false)}>
+              Cancel
+            </Button>
+            <Button onClick={handleSaveEdit} disabled={isEditing}>
+              {isEditing ? "Saving..." : "Save Changes"}
             </Button>
           </DialogFooter>
         </DialogContent>

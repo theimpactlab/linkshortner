@@ -11,7 +11,11 @@ import { toast } from "@/components/ui/use-toast"
 import { createShortLink } from "@/lib/actions/link-actions"
 import { Copy, Link } from "lucide-react"
 
-export function LinkShortenerForm() {
+interface LinkShortenerFormProps {
+  onSuccess?: () => void
+}
+
+export function LinkShortenerForm({ onSuccess }: LinkShortenerFormProps) {
   const [originalUrl, setOriginalUrl] = useState("")
   const [customCode, setCustomCode] = useState("")
   const [shortUrl, setShortUrl] = useState("")
@@ -50,6 +54,15 @@ export function LinkShortenerForm() {
         title: "Success!",
         description: "Your link has been shortened",
       })
+
+      // Call onSuccess callback if provided
+      if (onSuccess) {
+        onSuccess()
+      }
+
+      // Reset form
+      setOriginalUrl("")
+      setCustomCode("")
     } catch (error) {
       toast({
         title: "Error",
