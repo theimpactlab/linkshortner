@@ -1,16 +1,37 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { BarChart3, LinkIcon, Settings, Users, LogOut, Home } from "lucide-react"
-import { useAuth } from "@/lib/auth/auth-context"
+import { BarChart3, LinkIcon, Settings, Users, LogOut, Home, AlertTriangle } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
+import { supabase } from "@/lib/supabase/client"
+import { Alert, AlertDescription } from "@/components/ui/alert"
 
 export function Sidebar() {
   const pathname = usePathname()
-  const { signOut } = useAuth()
+  const [isQuickAccess, setIsQuickAccess] = useState(false)
+
+  useEffect(() => {
+    // Check for quick access mode
+    const quickAccess = localStorage.getItem("quickAccess") === "true"
+    setIsQuickAccess(quickAccess)
+  }, [])
+
+  const handleSignOut = async () => {
+    // Clear quick access if enabled
+    if (isQuickAccess) {
+      localStorage.removeItem("quickAccess")
+    } else {
+      // Sign out from Supabase
+      await supabase.auth.signOut()
+    }
+
+    // Redirect to home
+    window.location.href = "/"
+  }
 
   const routes = [
     {
@@ -47,6 +68,14 @@ export function Sidebar() {
           <span>LinkShortener</span>
         </Link>
       </div>
+
+      {isQuickAccess && (
+        <Alert className="mx-2 mb-2">
+          <AlertTriangle className="h-4 w-4" />
+          <AlertDescription>Quick access mode enabled</AlertDescription>
+        </Alert>
+      )}
+
       <div className="flex flex-col gap-1 px-2 flex-1">
         {routes.map((route) => (
           <Link
@@ -72,9 +101,9 @@ export function Sidebar() {
           </Link>
           <ModeToggle />
         </div>
-        <Button variant="outline" className="w-full justify-start" onClick={() => signOut()}>
+        <Button variant="outline" className="w-full justify-start" onClick={handleSignOut}>
           <LogOut className="mr-2 h-4 w-4" />
-          Sign Out
+          {isQuickAccess ? "Exit Admin Mode" : "Sign Out"}
         </Button>
       </div>
     </div>

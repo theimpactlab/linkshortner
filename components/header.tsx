@@ -1,21 +1,24 @@
 "use client"
 
+import { useEffect, useState } from "react"
 import Link from "next/link"
 import { Button } from "@/components/ui/button"
-import { useAuth } from "@/lib/auth/auth-context"
 import { ModeToggle } from "@/components/mode-toggle"
-import { useEffect, useState } from "react"
 import { supabase } from "@/lib/supabase/client"
 
 export function Header() {
-  const { user, signOut } = useAuth()
-  const [isClient, setIsClient] = useState(false)
   const [isAuthenticated, setIsAuthenticated] = useState(false)
+  const [isQuickAccess, setIsQuickAccess] = useState(false)
+  const [isClient, setIsClient] = useState(false)
 
-  // Check authentication status on client side
   useEffect(() => {
     setIsClient(true)
 
+    // Check for quick access mode
+    const quickAccess = localStorage.getItem("quickAccess") === "true"
+    setIsQuickAccess(quickAccess)
+
+    // Check for Supabase session
     const checkAuth = async () => {
       const { data } = await supabase.auth.getSession()
       setIsAuthenticated(!!data.session)
@@ -25,7 +28,18 @@ export function Header() {
   }, [])
 
   const handleSignOut = async () => {
-    await signOut()
+    // Clear quick access if enabled
+    if (isQuickAccess) {
+      localStorage.removeItem("quickAccess")
+    }
+
+    // Sign out from Supabase if authenticated
+    if (isAuthenticated) {
+      await supabase.auth.signOut()
+    }
+
+    // Redirect to home
+    window.location.href = "/"
   }
 
   return (
@@ -36,13 +50,13 @@ export function Header() {
         </Link>
         <div className="flex items-center space-x-4">
           <ModeToggle />
-          {isClient && (isAuthenticated || user) ? (
+          {isClient && (isAuthenticated || isQuickAccess) ? (
             <div className="flex items-center space-x-4">
               <Link href="/admin">
                 <Button variant="ghost">Dashboard</Button>
               </Link>
               <Button variant="outline" onClick={handleSignOut}>
-                Sign Out
+                {isQuickAccess ? "Exit Admin" : "Sign Out"}
               </Button>
             </div>
           ) : (
