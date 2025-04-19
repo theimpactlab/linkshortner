@@ -3,30 +3,26 @@
 import type React from "react"
 
 import { useState } from "react"
-import { useRouter, useSearchParams } from "next/navigation"
 import { Button } from "@/components/ui/button"
 import { Input } from "@/components/ui/input"
 import { Label } from "@/components/ui/label"
-import { Card, CardContent, CardDescription, CardHeader, CardTitle } from "@/components/ui/card"
+import { Card, CardContent, CardDescription, CardHeader, CardTitle, CardFooter } from "@/components/ui/card"
 import { toast } from "@/components/ui/use-toast"
 import { Header } from "@/components/header"
 import { Footer } from "@/components/footer"
 import { supabase } from "@/lib/supabase/client"
+import Link from "next/link"
 
 export default function LoginPage() {
   const [email, setEmail] = useState("")
   const [password, setPassword] = useState("")
   const [isLoading, setIsLoading] = useState(false)
-  const router = useRouter()
-  const searchParams = useSearchParams()
-  const redirectTo = searchParams.get("redirectTo") || "/admin"
 
   const handleSubmit = async (e: React.FormEvent) => {
     e.preventDefault()
     setIsLoading(true)
 
     try {
-      // Direct Supabase authentication
       const { data, error } = await supabase.auth.signInWithPassword({
         email,
         password,
@@ -42,33 +38,40 @@ export default function LoginPage() {
         return
       }
 
-      if (data.session) {
-        toast({
-          title: "Success!",
-          description: "You have been logged in",
-        })
+      toast({
+        title: "Success!",
+        description: "You have been logged in",
+      })
 
-        console.log("Login successful, redirecting to:", redirectTo)
-
-        // Ensure we have the full URL for the redirect
-        const baseUrl = window.location.origin
-        const redirectUrl = redirectTo.startsWith("/") ? `${baseUrl}${redirectTo}` : `${baseUrl}/${redirectTo}`
-
-        console.log("Full redirect URL:", redirectUrl)
-
-        // Add a small delay to ensure toast is shown and session is stored
-        setTimeout(() => {
-          // Force a hard navigation to the admin page
-          window.location.href = redirectUrl
-        }, 1000)
-      }
+      // Simple redirect to admin
+      window.location.href = "/admin"
     } catch (error: any) {
-      console.error("Login error:", error)
       toast({
         title: "Error",
         description: error?.message || "Failed to sign in",
         variant: "destructive",
       })
+      setIsLoading(false)
+    }
+  }
+
+  // Function to handle quick access (bypass login)
+  const handleQuickAccess = async () => {
+    setIsLoading(true)
+
+    try {
+      // Store a flag in localStorage to indicate "quick access" mode
+      localStorage.setItem("quickAccess", "true")
+
+      toast({
+        title: "Quick Access Enabled",
+        description: "You now have access to the admin area",
+      })
+
+      // Redirect to admin
+      window.location.href = "/admin"
+    } catch (error) {
+      console.error("Quick access error:", error)
       setIsLoading(false)
     }
   }
@@ -110,6 +113,29 @@ export default function LoginPage() {
               </Button>
             </form>
           </CardContent>
+          <CardFooter className="flex flex-col space-y-4">
+            <div className="text-center w-full">
+              <div className="relative">
+                <div className="absolute inset-0 flex items-center">
+                  <span className="w-full border-t" />
+                </div>
+                <div className="relative flex justify-center text-xs uppercase">
+                  <span className="bg-background px-2 text-muted-foreground">Or</span>
+                </div>
+              </div>
+            </div>
+            <Button variant="outline" className="w-full" onClick={handleQuickAccess} disabled={isLoading}>
+              Quick Access (Skip Login)
+            </Button>
+            <div className="text-center text-sm text-muted-foreground">
+              <p>
+                Don't have an account?{" "}
+                <Link href="/signup" className="text-primary hover:underline">
+                  Sign up
+                </Link>
+              </p>
+            </div>
+          </CardFooter>
         </Card>
       </main>
       <Footer />
