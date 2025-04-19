@@ -9,6 +9,7 @@ Table: links
 - user_id: uuid (references auth.users.id)
 - clicks: integer (default: 0)
 - active: boolean (default: true)
+- expires_at: timestamp with time zone
 - created_at: timestamp with time zone (default: now())
 - updated_at: timestamp with time zone (default: now())
 
@@ -18,5 +19,11 @@ Table: clicks
 - referrer: text
 - user_agent: text
 - ip_address: text
+- created_at: timestamp with time zone (default: now())
+
+Table: telegram_users
+- id: uuid (primary key, default: uuid_generate_v4())
+- user_id: uuid (references auth.users.id)
+- telegram_chat_id: text (unique, not null)
 - created_at: timestamp with time zone (default: now())
 */

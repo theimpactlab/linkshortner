@@ -4,7 +4,7 @@ import { useEffect, useState } from "react"
 import Link from "next/link"
 import { usePathname } from "next/navigation"
 import { cn } from "@/lib/utils"
-import { BarChart3, LinkIcon, Settings, Users, LogOut, Home, AlertTriangle } from "lucide-react"
+import { BarChart3, LinkIcon, Settings, Users, LogOut, Home, AlertTriangle, MessageSquare } from "lucide-react"
 import { Button } from "@/components/ui/button"
 import { ModeToggle } from "@/components/mode-toggle"
 import { supabase } from "@/lib/supabase/client"
@@ -51,6 +51,12 @@ export function Sidebar() {
       icon: Users,
       href: "/admin/users",
       active: pathname === "/admin/users",
+    },
+    {
+      label: "Telegram Bot",
+      icon: MessageSquare,
+      href: "/admin/telegram",
+      active: pathname === "/admin/telegram",
     },
     {
       label: "Settings",

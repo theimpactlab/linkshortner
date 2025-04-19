@@ -5,7 +5,7 @@ import { nanoid } from "nanoid"
 import type { Link } from "@/lib/types"
 import { revalidatePath } from "next/cache"
 
-export async function createShortLink(originalUrl: string, customCode?: string, expiresAt?: string) {
+export async function createShortLink(originalUrl: string, customCode?: string, expiresAt?: string, userId?: string) {
   const supabase = createServerSupabaseClient()
 
   try {
@@ -28,11 +28,13 @@ export async function createShortLink(originalUrl: string, customCode?: string, 
       }
     }
 
-    // Get current user
-    const {
-      data: { session },
-    } = await supabase.auth.getSession()
-    const userId = session?.user?.id
+    // Get current user if userId not provided
+    if (!userId) {
+      const {
+        data: { session },
+      } = await supabase.auth.getSession()
+      userId = session?.user?.id
+    }
 
     // Insert new link
     const { data, error } = await supabase
