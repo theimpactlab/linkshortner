@@ -17,7 +17,7 @@ export async function handleLinkCommand(message: any, args: string[]) {
 
     // Find the link code in the database
     const { data: linkData, error: linkError } = await supabase
-      .from("telegram_link_codes")
+      .from("links")
       .select("user_id")
       .eq("code", linkCode)
       .gt("expires_at", new Date().toISOString())
@@ -52,7 +52,7 @@ export async function handleLinkCommand(message: any, args: string[]) {
     }
 
     // Delete the used link code
-    await supabase.from("telegram_link_codes").delete().eq("code", linkCode)
+    await supabase.from("links").delete().eq("code", linkCode)
 
     return {
       text: "✅ Your Telegram account has been successfully linked! You can now manage your links via chat.",
